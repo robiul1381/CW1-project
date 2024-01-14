@@ -12,9 +12,9 @@ using namespace std;
 class Person
 {
 public:
-    std::string firstName;
-    std::string lastName;
-    std::string email;
+    string firstName;
+    string lastName;
+    string email;
 
     Person() : firstName(""), lastName(""), email("") {}
     Person(const std::string &first, const std::string &last, const std::string &mail)
