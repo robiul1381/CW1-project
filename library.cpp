@@ -9,45 +9,119 @@
 
 using namespace std;
 
+//person class
 class Person
 {
-public:
-    string firstName;
-    string lastName;
+private:
+    string name;
     string email;
+    string address;
 
-    Person() : firstName(""), lastName(""), email("") {}
-    Person(const std::string &first, const std::string &last, const std::string &mail)
-        : firstName(first), lastName(last), email(mail) {}
+public:
+    Person() : name(""), email(""), address("") {}
+    Person(const string &fullName, const string &mail, const string &addr)
+        : name(fullName), email(mail), address(addr) {}
+
+    // Getter methods
+    string getName() const { return name; }
+    string getEmail() const { return email; }
+    string getAddress() const { return address; }
+
+    // Setter methods
+    void setName(const string &fullName) { name = fullName; }
+    void setEmail(const string &mail) { email = mail; }
+    void setAddress(const string &addr) { address = addr; }
 };
 
+//Member class
 class Member
 {
-public:
-    static int nextMemberID;
+private:
     int memberID;
     Person person;
-    string address;
     vector<int> borrowedBooks;
     vector<time_t> dueDates;
 
-    Member() : memberID(0), address("") {}
-    Member(const Person &p, const std::string &addr)
-        : memberID(generateRandomID()), person(p), address(addr) {}
-    
-    int generateRandomID() {
-        return rand() % 900 + 100;  // Generates a random 3-digit number
+public:
+    static int nextMemberID;
+
+    Member() : memberID(0) {}
+    Member(const Person &p)
+        : memberID(generateRandomID()), person(p) {}
+
+    int generateRandomID()
+    {
+        return rand() % 900 + 100; //random 3 digit ID
     }
+
+    void borrowBook(int bookID, time_t dueDate)
+    {
+        borrowedBooks.push_back(bookID);
+        dueDates.push_back(dueDate);
+    }
+
+    void returnBook(int bookID)
+    {
+        auto it = find(borrowedBooks.begin(), borrowedBooks.end(), bookID);
+        if (it != borrowedBooks.end())
+        {
+            int index = distance(borrowedBooks.begin(), it);
+            borrowedBooks.erase(it);
+            dueDates.erase(dueDates.begin() + index);
+        }
+    }
+
+    time_t getDueDateForBook(int bookID)
+    {
+        auto it = find(borrowedBooks.begin(), borrowedBooks.end(), bookID);
+        if (it != borrowedBooks.end())
+        {
+            int index = distance(borrowedBooks.begin(), it);
+            return dueDates[index];
+        }
+        return time_t();
+    }
+
+    const vector<int> &getBorrowedBooks() const
+    {
+        return borrowedBooks;
+    }
+
+    // Getter methods
+    int getMemberID() const { return memberID; }
+    Person getPerson() const { return person; }
+
+    // Setter methods
+    void setMemberID(int id) { memberID = id; }
+    void setPerson(const Person &p) { person = p; }
 };
 
 int Member::nextMemberID = 100;
 
+//Book class
 class Book
 {
-public:
+private:
     int BookID;
     string BookName, AuthorFirstName, AuthorLastName, BookType;
     int PageCount;
+
+public:
+    // Getter methods
+    int getBookID() const { return BookID; }
+    string getBookName() const { return BookName; }
+    string getAuthorFirstName() const { return AuthorFirstName; }
+    string getAuthorLastName() const { return AuthorLastName; }
+    string getBookType() const { return BookType; }
+    int getPageCount() const { return PageCount; }
+
+    // Setter methods
+    void setBookID(int id) { BookID = id; }
+    void setBookName(const string &name) { BookName = name; }
+    void setAuthorFirstName(const string &first) { AuthorFirstName = first; }
+    void setAuthorLastName(const string &last) { AuthorLastName = last; }
+    void setBookType(const string &type) { BookType = type; }
+    void setPageCount(int count) { PageCount = count; }
 };
 
 // Function declarations
@@ -71,18 +145,28 @@ void loadBooksFromFile(vector<Book> &books)
     {
         Book book;
         string line;
-        getline(file, line);
+        getline(file, line); //This will avoid the Header
         while (getline(file, line))
         {
             stringstream ss(line);
-            ss >> book.BookID;
+            int id, pageCount;
+            string bookName, authorFirstName, authorLastName, bookType;
+
+            ss >> id;
+            ss.ignore(); 
+            getline(ss, bookName, ',');
+            ss >> pageCount;
             ss.ignore();
-            getline(ss, book.BookName, ',');
-            ss >> book.PageCount;
-            ss.ignore();
-            getline(ss, book.AuthorFirstName, ',');
-            getline(ss, book.AuthorLastName, ',');
-            getline(ss, book.BookType);
+            getline(ss, authorFirstName, ',');
+            getline(ss, authorLastName, ',');
+            getline(ss, bookType);
+
+            book.setBookID(id);
+            book.setBookName(bookName);
+            book.setPageCount(pageCount);
+            book.setAuthorFirstName(authorFirstName);
+            book.setAuthorLastName(authorLastName);
+            book.setBookType(bookType);
 
             books.push_back(book);
         }
@@ -101,10 +185,11 @@ void displayAvailableBooks(const vector<Book> &books)
     cout << "Available Books:\n";
     for (const auto &book : books)
     {
-        cout << "ID: " << book.BookID << ", Title: " << book.BookName
-             << ", Page count: " << book.PageCount
-             << ", Author: " << book.AuthorFirstName << " " << book.AuthorLastName
-             << ", Type: " << book.BookType << "\n";
+        cout << "ID: " << book.getBookID()
+             << ", Title: " << book.getBookName()
+             << ", Page count: " << book.getPageCount()
+             << ", Author: " << book.getAuthorFirstName() << " " << book.getAuthorLastName()
+             << ", Type: " << book.getBookType() << "\n";
     }
 }
 
@@ -116,11 +201,12 @@ void saveMembersToFile(const vector<Member> &members)
     {
         for (const auto &member : members)
         {
-            file << "Member," << member.memberID << "," << member.person.firstName << ","
-                 << member.person.lastName << "," << member.person.email << "," << member.address << "\n";
+            file << "Member," << member.getMemberID() << ","
+                 << member.getPerson().getName() << ","
+                 << member.getPerson().getEmail() << ","
+                 << member.getPerson().getAddress() << "\n";
         }
 
-        // Save nextMemberID at the end of the file
         file << "NextMemberID," << Member::nextMemberID << "\n";
 
         file.close();
@@ -133,7 +219,6 @@ void saveMembersToFile(const vector<Member> &members)
 }
 
 
-// Update the loadMembersFromFile function
 void loadMembersFromFile(vector<Member> &members)
 {
     ifstream file("member_details.txt");
@@ -142,7 +227,6 @@ void loadMembersFromFile(vector<Member> &members)
     {
         members.clear();
 
-        Member member;
         string line;
         while (getline(file, line))
         {
@@ -152,12 +236,26 @@ void loadMembersFromFile(vector<Member> &members)
 
             if (type == "Member")
             {
-                ss >> member.memberID >> member.person.firstName >> member.person.lastName >> member.person.email >> member.address;
+                int memberID;
+                string fullName, email, address;
+
+                ss >> memberID;
+                ss.ignore();
+                getline(ss, fullName, ',');
+                getline(ss, email, ',');
+                getline(ss, address);
+
+                Person person(fullName, email, address);
+                Member member(person);
+                member.setMemberID(memberID);
+
                 members.push_back(member);
             }
             else if (type == "NextMemberID")
             {
-                ss >> Member::nextMemberID;
+                int nextID;
+                ss >> nextID;
+                Member::nextMemberID = nextID;
             }
         }
 
@@ -169,6 +267,7 @@ void loadMembersFromFile(vector<Member> &members)
         cout << "No saved member data found.\n";
     }
 }
+
 void displayMemberInformation(const vector<Member> &members)
 {
     if (members.empty())
@@ -181,8 +280,11 @@ void displayMemberInformation(const vector<Member> &members)
         cout << "Member Information:\n";
         for (const auto &member : members)
         {
-            cout << "ID: " << member.memberID << ", Name: " << member.person.firstName
-                 << " " << member.person.lastName << ", Address: " << member.address << ", Email: " << member.person.email << "\n";
+            Person person = member.getPerson();
+            cout << "ID: " << member.getMemberID()
+                 << ", Name: " << person.getName()
+                 << ", Address: " << person.getAddress()
+                 << ", Email: " << person.getEmail() << "\n";
         }
     }
 }
@@ -191,13 +293,12 @@ void issueBookToMember(vector<Member> &members, const vector<Book> &books, int m
 {
     for (auto &member : members)
     {
-        if (member.memberID == memberID)
+        if (member.getMemberID() == memberID)
         {
-            member.borrowedBooks.push_back(bookID);
-
             time_t now = time(nullptr);
             time_t dueDate = now + (3 * 24 * 60 * 60);
-            member.dueDates.push_back(dueDate);
+
+            member.borrowBook(bookID, dueDate);
 
             cout << "\n---------------------------\n";
             cout << "Book issued successfully to member " << memberID << ".\n";
@@ -209,24 +310,28 @@ void issueBookToMember(vector<Member> &members, const vector<Book> &books, int m
     cout << "Member not found.\n";
 }
 
-
 void displayBooksBorrowedByMember(const vector<Member> &members, int memberID, const vector<Book> &books)
 {
     for (const auto &member : members)
     {
-        if (member.memberID == memberID)
+        if (member.getMemberID() == memberID)
         {
             cout << "\n---------------------------\n";
             cout << "Books borrowed by member " << memberID << ":\n";
-            for (int i = 0; i < member.borrowedBooks.size(); ++i)
+
+            const vector<int> &borrowedBooks = member.getBorrowedBooks();
+
+            for (int bookID : borrowedBooks)
             {
-                int bookID = member.borrowedBooks[i];
                 auto it = find_if(books.begin(), books.end(), [bookID](const Book &b)
-                                  { return b.BookID == bookID; });
+                                  { return b.getBookID() == bookID; });
+
                 if (it != books.end())
                 {
-                    cout << "ID: " << it->BookID << ", Title: " << it->BookName
-                         << ", Author: " << it->AuthorFirstName << ", Type: " << it->BookType << "\n";
+                    cout << "ID: " << it->getBookID()
+                         << ", Title: " << it->getBookName()
+                         << ", Author: " << it->getAuthorFirstName() << " " << it->getAuthorLastName()
+                         << ", Type: " << it->getBookType() << "\n";
                 }
             }
             return;
@@ -243,18 +348,15 @@ float calculateFine(time_t dueDate, time_t returnDate)
     return fineRate * daysOverdue;
 }
 
-
 void returnBookFromMember(vector<Member> &members, int memberID, int bookID)
 {
     for (auto &member : members)
     {
-        if (member.memberID == memberID)
+        if (member.getMemberID() == memberID)
         {
-            auto it = find(member.borrowedBooks.begin(), member.borrowedBooks.end(), bookID);
-            if (it != member.borrowedBooks.end())
+            time_t dueDate = member.getDueDateForBook(bookID);
+            if (dueDate != time_t())
             {
-                int index = static_cast<int>(distance(member.borrowedBooks.begin(), it));
-
                 std::string returnDateStr;
                 cout << "Enter return date (DD-MM-YYYY): ";
                 cin.ignore();
@@ -271,9 +373,8 @@ void returnBookFromMember(vector<Member> &members, int memberID, int bookID)
                 }
 
                 time_t returnDate = std::mktime(&tm);
-                time_t now = time(nullptr);
-                
-                float fine = calculateFine(member.dueDates[index], returnDate);
+
+                float fine = calculateFine(dueDate, returnDate);
 
                 if (fine > 0.0)
                 {
@@ -286,8 +387,7 @@ void returnBookFromMember(vector<Member> &members, int memberID, int bookID)
                     cout << "Book returned on time.\n";
                 }
 
-                member.borrowedBooks.erase(it);
-                member.dueDates.erase(member.dueDates.begin() + index);
+                member.returnBook(bookID);
                 saveMembersToFile(members);
                 return;
             }
@@ -301,8 +401,6 @@ void returnBookFromMember(vector<Member> &members, int memberID, int bookID)
 
     cout << "Member not found.\n";
 }
-
-
 
 int main()
 {
@@ -338,11 +436,9 @@ int main()
         case 2:
             displayMemberInformation(members);
             break;
-        case 3:
-        {
+        case 3: {
             string name, address, email;
             cout << "Enter Name: ";
-            cin.ignore();
             getline(cin, name);
 
             cout << "Enter Address: ";
@@ -351,12 +447,11 @@ int main()
             cout << "Enter Email: ";
             getline(cin, email);
 
-            Person person(name, "", email);
-            Member newMember(person, address);
-
+            Person person(name, email, address);
+            Member newMember(person);
             members.push_back(newMember);
             cout << "\n---------------------------\n";
-            cout << "Member successfully added. Member ID: " << newMember.memberID << "\n";
+            cout << "Member successfully added. Member ID: " << newMember.getMemberID() << "\n";
             saveMembersToFile(members);
             break;
         }
